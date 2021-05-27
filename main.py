@@ -6,6 +6,7 @@ Hence the biological names.
 
 import pickle
 import numpy as np
+import sympy
 import SCNF
 import utils
 
@@ -19,7 +20,9 @@ N = 10  #Size of the network to infer
 genes = np.floor(np.random.rand(N) * len(namemap)).astype(int)  #randomly selected genes.
 genedata = utils.trim_genedata(genedata, genes)                 #dataset is trimmed.
 literals = [list(namemap.values())[x] for x in genes]           #Computing the list for literals. Using gene names.
-
+neg_literals = ['~'+list(namemap.values())[x] for x in genes]           #Computing the list for literals. Using gene names.
+literals += neg_literals
+print(literals)
 i = 0
 for gene in genes:
     relevant_transitions = utils.trim_outputs(genedata, i)  #Outputs are trimmed
