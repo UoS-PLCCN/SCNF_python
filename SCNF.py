@@ -18,16 +18,42 @@ def SCNF_Learn(transitions, literals):
     returns:
         ???: The SCNF clause for node i
     """
-    S0, S1, SC = _split_transitions(transitions)
-    if len(S0) == 0:
-        Phi = True
-    elif len(S1) + len(SC) == 0:
-        Phi = False
-    else:
-        Phi = CNF_Logic_Learn(S0, S1 + SC, literals)
-        p = 1
+    S0, S1, SC = _split_transitions(transitions) #7
+    if len(S0) == 0: #8
+        Phi = ['True'] #9
+    elif len(S1) + len(SC) == 0: #10
+        Phi = ['False'] #11
+    else: #12
+        Phi = CNF_Logic_Learn(S0, S1 + SC, literals) #13
+        p = 1 #14
     print(Phi)
+    if not len(SC) == 0: #15
+        raise Exception('')
+    else:#21
+        Theta = ['True']#22
     raise Exception('')
+
+def eval_disjunction(state, disjunction, literal_positions):
+    disjunction = copy.deepcopy(disjunction)
+    #print("eval_disjunction")
+    #print(state)
+    #print(disjunction)
+    #print(literal_positions)
+    value_mask = np.ones(len(disjunction), dtype=bool)
+    for i in range(len(disjunction)):
+        literal = disjunction[i]
+        if literal[0] == '~':
+            value_mask[i] = False
+            disjunction[i] = literal[1:]
+
+    output = False
+    i = 0
+    for i in range(len(disjunction)):
+        literal = disjunction[i]
+        position = literal_positions.index(literal)
+        if state[position] == value_mask[i]:
+            output = True
+    return output
 
 def CNF_Logic_Learn(H0, H1, L):
     """Return the CNF given the positive and negative clauses
@@ -41,49 +67,33 @@ def CNF_Logic_Learn(H0, H1, L):
     """
     H0 = copy.deepcopy(H0)
     L = copy.deepcopy(L)
-    k = 0
-    Phi = symbols('1')
-    while not len(H0) == 0:
-        print(f"|H0| {len(H0)}")
-        phi = CNF_Disjunction_Learn(H0, H1, L, symbols('False'), debug = False)
-        print(f"output: {phi}")
-        used_literals = [x for x in phi.atoms(Symbol) if not x == symbols('False')]
-        print(f"L: {L}")
-        H0_fulfilled = []
+    k = 0 #8
+    Phi = []
+    while not len(H0) == 0:#9
+#        print(f"|H0| {len(H0)}")
+        phi = CNF_Disjunction_Learn(H0, H1, L, [], L[:int(len(L)/2)], debug = False) #10
+#        print(f"output: {phi}")
+#        raise Exception('')
+        used_literals = [x for x in phi]
+#        print(f"L: {L}")
+        H0_new = [] #11
         for h in H0:
-            print(h)
-            phi_new = copy.deepcopy(phi)
-            for l in used_literals:
-#                print(l)
-                l = str(l)
-                literal_index = L.index(l)
-                negation = False
-                if l[0] == NEG_SIGN:
-                    literal_index -= int((len(L)/2))
-                    negation = True
-                literal_value = h[literal_index]
-                if negation:
-                    literal_value = not literal_value
-#                print(literal_index)
-#                print(literal_value)
-                phi_new = phi_new.subs(l, literal_value)
-            print(f"phi_new: {bool(phi_new)}")
-            print(type(bool(phi_new)))
-            if not bool(phi_new):
-                print("Bewoop")
-                H0_fulfilled += [h]
-            input()
-        print(len(H0_fulfilled))
-        raise Exception('')
-        print(len(H0_fulfilled))
-        for h in H0_fulfilled:
-            H0.remove(h)
-        print(f"|H0|: {len(H0)}")
-        input()
-        Phi = Phi and (phi)
-    print(Phi)
-    raise Exception('')
-def CNF_Disjunction_Learn(H0, H1, L, phi, debug = False):
+            #print(h)
+            output_after_disjunction = eval_disjunction(h, phi,L[:int(len(L)/2)])
+            #print(output_after_disjunction)
+            #input()
+            if output_after_disjunction:
+                H0_new += [h]
+#        print(H0_new)
+#        print("|H0_new|: {0}".format(len(H0_new)))
+        H0 = copy.deepcopy(H0_new)
+#        print(H0)
+#        print(f"|H0|: {len(H0)}")
+#        input("Appending disjunction")
+        Phi = Phi + [phi] # 12
+        k += 1 # 13
+    return Phi #15
+def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug = False):
     if debug:
         print("CNF_Disjunction_Learn")
         print(f"phi: {phi}")
@@ -91,10 +101,10 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, debug = False):
         print(f"|H0|: {len(H0)}")
         print(f"|H1|: {len(H1)}")
         input()
-    if len(L) == 0:
-        return symbols('1')
+    if len(L) == 0: #9
+        return [] #10
     score = {}
-    for l in L:
+    for l in L: # 12
         if debug:
             print(f"Evaluating {l}")
         literal_index = L.index(l)
@@ -102,24 +112,24 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, debug = False):
         if l[0] == NEG_SIGN:
             literal_index -= int((len(L)/2))
             negation = True
-        if len(H0) == 0:
-            s = len([x for x in H1 if not x[literal_index] == negation])
-            score[l] = s/len(H1)
+        if len(H0) == 0: #13
+            s = len([x for x in H1 if eval_disjunction(x, phi + [l], literal_positions_global)])
+            score[l] = s/len(H1) #14
             if debug:
                 print(f"|H0| is empty.")
                 print(f"|Satisfied H1|: {s}")
                 print(f"score: {score[l]}")
-        elif len(H1) == 0:
-            s = len([x for x in H0 if x[literal_index] == negation])
-            score[l] = s/len(H0)
+        elif len(H1) == 0: #15
+            s = len([x for x in H0 if not eval_disjunction(x, phi + [l], literal_positions_global)])
+            score[l] = s/len(H0) #16
             if debug:
                 print(f"|H1| is empty.")
                 print(f"|Satisfied H0|: {s}")
                 print(f"score: {score[l]}")
-        else:
-            sp = len([x for x in H1 if not x[literal_index] == negation])
-            sn = len([x for x in H0 if not x[literal_index] == negation])
-            score[l] = sp/len(H1) - sn/len(H0)
+        else: #17
+            sp = len([x for x in H1 if eval_disjunction(x, phi + [l], literal_positions_global)])
+            sn = len([x for x in H0 if eval_disjunction(x, phi + [l], literal_positions_global)])
+            score[l] = sp/len(H1) - sn/len(H0) #20
             if debug:
                 print(f"|H1| and |H0| non-empty")
                 print(f"|desirable transitions|: {sp}")
@@ -128,7 +138,7 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, debug = False):
         if debug:
             input()
     #L22 in alg
-    best_literal = max(score.items(), key = operator.itemgetter(1))[0]
+    best_literal = max(score.items(), key = operator.itemgetter(1))[0] # 23
     if debug:
         print(f"score(l): {score}")
         print(f"l*: {best_literal}")
@@ -137,18 +147,14 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, debug = False):
     if best_literal[0] == NEG_SIGN:
         literal_index -= int((len(L)/2))
         negation = True
-    if negation:
-        fulfilled_H1 = [x for x in H1 if not x[literal_index]]
-        fulfilled_H0 = [x for x in H0 if not x[literal_index]]
-    else:
-        fulfilled_H1 = [x for x in H1 if x[literal_index]]
-        fulfilled_H0 = [x for x in H0 if x[literal_index]]
+    fulfilled_H1 = [x for x in H1 if eval_disjunction(x, phi + [l], literal_positions_global)]
+    fulfilled_H0 = [x for x in H0 if eval_disjunction(x, phi + [l], literal_positions_global)]
     H1_remaining = []
     H0_remaining = []
-    for h in H1:
+    for h in H1: #24
         if not h in fulfilled_H1:
             H1_remaining += [h]
-    for h in H0:
+    for h in H0: #25
         if not h in fulfilled_H0:
             H0_remaining += [h]
     if debug:
@@ -156,14 +162,18 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, debug = False):
         print(f"|H1^|: {len(H1_remaining)}")
         input()
     #L26 in alg
-    if H1_remaining == H1 or len(H0_remaining) == 0:
+    if H1_remaining == H1 or len(H0_remaining) == 0: # 26
+        if debug:
+            print("Leads to invalid disjunction")
         lit_remaining = copy.deepcopy(L)
         lit_remaining.remove(best_literal)
-        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, debug = debug)
+        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, literal_positions_global,debug = debug) #27
 
-    if len(H1_remaining) == 0:
-        phi_new = phi | symbols(best_literal)
-        return phi_new
+    if len(H1_remaining) == 0: # 29
+        if debug:
+            print("All H1s satisfied")
+        phi_new = phi +[best_literal] #30
+        return phi_new #31
 
     lit_remaining = copy.deepcopy(L)
     lit_remaining.remove(best_literal)
@@ -173,13 +183,17 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, debug = False):
     else:
         if NEG_SIGN + best_literal in lit_remaining:
             lit_remaining.remove(NEG_SIGN + best_literal)
-    phi_new = CNF_Disjunction_Learn(H0_remaining, H1_remaining, lit_remaining, phi | symbols(best_literal), debug = debug)
-    if len(phi_new.atoms(Symbol))-1 == 0:
+    if debug:
+        print("Going deeper")
+    phi_new = CNF_Disjunction_Learn(H0_remaining, H1_remaining, lit_remaining, phi + [best_literal],literal_positions_global, debug = debug) #33
+    if len(phi_new) == 0: #34
         lit_remaining = copy.deepcopy(L)
         lit_remaining.remove(best_literal)
-        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, debug = debug)
+        if debug:
+            print("Ran out of literals to add?")
+        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi,literal_positions_global, debug = debug) #5
 
-    return phi_new
+    return phi_new #37
 def _split_transitions(transitions):
     """Split the transitions according to equations 20, 21 and 22 in the paper.
 
