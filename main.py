@@ -27,6 +27,7 @@ i = 0
 for gene in genes:
     relevant_transitions = utils.trim_outputs(genedata, i)  #Outputs are trimmed
     clause = SCNF.SCNF_Learn(relevant_transitions, literals)
-    raise Exception('')
+    print(clause)
+    raise Exception('Returned')
     i += 1
 
