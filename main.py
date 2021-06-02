@@ -22,12 +22,15 @@ genedata = utils.trim_genedata(genedata, genes)                 #dataset is trim
 literals = [list(namemap.values())[x] for x in genes]           #Computing the list for literals. Using gene names.
 neg_literals = ['~'+list(namemap.values())[x] for x in genes]           #Computing the list for literals. Using gene names.
 literals += neg_literals
-print(literals)
+literal_order = literals[:int(len(literals)/2)]
 i = 0
+SCNFs = []
 for gene in genes:
     relevant_transitions = utils.trim_outputs(genedata, i)  #Outputs are trimmed
     clause = SCNF.SCNF_Learn(relevant_transitions, literals)
-    print(clause)
-    raise Exception('Returned')
+#    print(clause)
+    SCNFs += [clause]
     i += 1
-
+print(literal_order)
+print(SCNFs)
+raise Exception('Returned')

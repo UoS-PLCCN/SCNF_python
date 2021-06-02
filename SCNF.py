@@ -8,6 +8,7 @@ import numpy as np
 from sympy import *
 import itertools
 import math
+import scipy.optimize as optimize
 
 NEG_SIGN = '~'
 
@@ -58,31 +59,35 @@ def SCNF_Learn(transitions, literals):
     """
     S0, S1, SC = _split_transitions(transitions) #7
     if len(S0) == 0: #8
-        Phi = ['True'] #9
+        Phi = [('True', 1)] #9
     elif len(S1) + len(SC) == 0: #10
-        Phi = ['False'] #11
+        Phi = [('False', 1)] #11
     else: #12
 #        print("|S0|: {0}".format(len(S0)))
 #        print("|S1+SC|: {0}".format(len(S1+SC)))
         Phi = CNF_Logic_Learn(S0, S1 + SC, literals) #13
         p = 1 #14
-    print("Phi: {0}".format(Phi))
+        Phi_new = []
+        for phi in Phi:
+            Phi_new += [(phi, 1)]
+        Phi = Phi_new
+#    print("Phi: {0}".format(Phi))
     if not len(SC) == 0: #15
 #        print("|SC|: {0}".format(len(SC)))
 #        print("|S1|: {0}".format(len(S1)))
         Theta = CNF_Logic_Learn(SC, S1, literals, debug = False)
-        print("Theta: {0}".format(Theta))
-        CNF_Parameter_Learn(literals, SC, Theta, transitions)
-        raise Exception('')
+        #print("Theta: {0}".format(Theta))
+        Theta = CNF_Parameter_Learn(literals, SC, Theta, transitions)
+#        print(Theta)
     else:#21
-        Theta = [['True']]#22
-        print("Theta: {0}".format(Theta))
+        Theta = [('True', 1)]#22
+#        print("Theta: {0}".format(Theta))
     return Theta + Phi
 
 def CNF_Parameter_Learn(literals, SC, Theta, full_transitions):
     literal_position = literals[:int(len(literals)/2)]
     Psi = Psi_map()
-    print(Theta)
+#    print(Theta)
     for h in SC:
         h_disjunctions = []
         for disjunction in Theta:
@@ -91,35 +96,41 @@ def CNF_Parameter_Learn(literals, SC, Theta, full_transitions):
         Psi.assign(h, h_disjunctions)
     p = np.random.rand(len(Theta))
     l = 0.1
-    compute_loss(p, Theta, Psi, SC, l, full_transitions, literal_position)
-    raise Exception('')
-    print(literals)
-    print(SC)
-    print(Theta)
-    raise Exception('')
+    loss = lambda x: compute_loss(x, Theta, Psi, SC, l, full_transitions, literal_position)
+    bnds = []
+    for _ in range(len(Theta)):
+        bnds += [(10**-8, 1 - 10 ** -8)]
+    bnds = tuple(bnds)
+    min_loss = optimize.minimize(loss, p, bounds=bnds).x
+    #print("Initial guess: {0}".format(p))
+    #print("Optimized: {0}".format(min_loss))
+    Theta_New = []
+    for i in range(len(Theta)):
+        Theta_New += [(Theta[i], min_loss[i])]
+    Theta = Theta_New
+    return Theta
 
 def compute_loss(p, Theta, Psi, transitions, l, full_transitions, literal_position):
-    print("compute_loss")
-    print(p)
+#    print("compute_loss")
     Theta_New = []
     for i in range(len(Theta)):
         Theta_New += [(Theta[i], p[i])]
     Psi.assign_probabilities(Theta, p)
     Theta = Theta_New
-    print(Theta)
-    print(Psi)
+#    print(Theta)   
+#    print(Psi)
     output = 0
     for t in transitions:
         P0 = compute_P0(t, Theta, Psi)
         output -= compute_log_likelihood(t, full_transitions, P0)
-    epsilons = 0
+    #epsilons = 0
 #    for t in transitions:
 #        epsilons += compute_epsilon(P0)
 
 #    epsilons *= l
 #    output += epsilons
-    print(output)
-    raise Exception('')
+#    print(output)
+    return output
 #def compute_epsilon(P0):
 
 def compute_P0(previous_state, Theta, Psi):
