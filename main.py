@@ -9,6 +9,7 @@ import numpy as np
 import sympy
 import SCNF
 import utils
+import PBN_env
 
 genedata = pickle.load(open("schiebinger_data_full.pkl","rb"))      #Pre-processed genedata
 namemap = pickle.load(open("schiebinger_namemap_full.pkl","rb"))    #Map from indexes in the original
@@ -33,5 +34,12 @@ for gene in genes:
     i += 1
 #print(literal_order)
 PBN = SCNF.SCNF_To_PBN(SCNFs, literal_order)
-print(PBN)
-raise Exception('Returned')
+function, mask = PBN[0]
+print(mask)
+env = PBN_env.PBN(PBN_data = PBN)
+print(env)
+env.reset()
+for _ in range(10):
+    print(env.get_state().astype(int))
+    env.step()
+

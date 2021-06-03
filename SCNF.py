@@ -420,7 +420,7 @@ def SCNF_To_PBN(SCNF, literal_order):
         for l in literals_used:
             pos = literal_order.index(l)
             input_mask[pos] = True
-        PBN += [(function_vector, input_mask)]
+        PBN += [(input_mask, function_vector)]
     return PBN
 
 def evaluate_function(function, literal_order):
