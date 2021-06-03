@@ -31,6 +31,7 @@ for gene in genes:
 #    print(clause)
     SCNFs += [clause]
     i += 1
-print(literal_order)
-print(SCNFs)
+#print(literal_order)
+PBN = SCNF.SCNF_To_PBN(SCNFs, literal_order)
+print(PBN)
 raise Exception('Returned')

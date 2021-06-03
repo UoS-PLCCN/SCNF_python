@@ -80,7 +80,7 @@ def SCNF_Learn(transitions, literals):
         Theta = CNF_Parameter_Learn(literals, SC, Theta, transitions)
 #        print(Theta)
     else:#21
-        Theta = [('True', 1)]#22
+        Theta = [(['True'], 1)]#22
 #        print("Theta: {0}".format(Theta))
     return Theta + Phi
 
@@ -183,6 +183,9 @@ def eval_disjunction(state, disjunction, literal_positions):
 
     output = False
     i = 0
+    for literal in disjunction:
+        if literal == 'True':
+            return True
     for i in range(len(disjunction)):
         literal = disjunction[i]
         position = literal_positions.index(literal)
@@ -239,7 +242,8 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug = Fals
         print(f"H1: {H1}")
         input()
     if len(L) == 0: #9
-        return [] #10
+        return []
+#        return ['True'] #10
     score = {}
     for l in L: # 12
         if debug:
@@ -272,8 +276,8 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug = Fals
                 print(f"|desirable transitions|: {sp}")
                 print(f"|undesirable transitions|: {sn}")
                 print(f"score: {score[l]}")
-        if debug:
-            input()
+        #if debug:
+        #    input()
     #L22 in alg
     best_literal = max(score.items(), key = operator.itemgetter(1))[0] # 23
     if debug:
@@ -307,10 +311,10 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug = Fals
         return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, literal_positions_global,debug = debug) #27
 
     if len(H1_remaining) == 0: # 29
+        phi_new = phi +[best_literal] #30
         if debug:
             print("All H1s satisfied")
             print("returning {0}".format(phi_new))
-        phi_new = phi +[best_literal] #30
         return phi_new #31
 
     lit_remaining = copy.deepcopy(L)
@@ -364,3 +368,90 @@ def _split_transitions(transitions):
     S0 = zeros
     S1 = ones
     return S0, S1, SC
+
+def SCNF_To_PBN(SCNF, literal_order):
+    PBN = []
+    for target_SCNF in SCNF:
+        Phi = []
+        Theta = []
+        for disjunction, probability in target_SCNF:
+            if not probability == 0 and not probability == 1:
+                Phi += [(disjunction, probability)]
+            else:
+                Theta += [(disjunction, probability)]
+        literals_used = []
+        for disjunction, _ in Phi:
+            for literal in disjunction:
+                if literal[0] == '~':
+                    literal = literal[1:]
+                if not literal in literals_used:
+                    literals_used += [literal]
+        for disjunction, _ in Theta:
+            for literal in disjunction:
+                if not literal == 'True':
+                    if literal[0] == '~':
+                        literal = literal[1:]
+                    if not literal in literals_used:
+                        literals_used += [literal]
+        literals_used.sort(key = lambda x: literal_order.index(x))
+        shape = [2]*len(literals_used)
+        function_vector = np.zeros(shape)
+
+        Phi_powerset = list(itertools.chain.from_iterable(itertools.combinations(Phi, r) for r in range(len(Phi)+1)))
+        f = Theta
+        n_functions = len(Phi_powerset)
+
+        for subpowerset in Phi_powerset:
+            probability = 1
+            for clause in Phi:
+                _, prob = clause
+                if clause in subpowerset:
+                    probability *= prob
+                else:
+                    probability *= (1-prob)
+            logical_function = []
+            for func, _ in Theta:
+                logical_function += [func]
+            for func, _ in subpowerset:
+                logical_function += [func]
+            vector = evaluate_function(logical_function, literals_used) * probability
+            function_vector += vector
+        input_mask = np.zeros(len(literal_order), dtype=bool)
+        for l in literals_used:
+            pos = literal_order.index(l)
+            input_mask[pos] = True
+        PBN += [(function_vector, input_mask)]
+    return PBN
+
+def evaluate_function(function, literal_order):
+    print(function)
+    shape = [2]*len(literal_order)
+    output = np.zeros(shape)
+    inputs = gen_inputs(len(literal_order))
+    for inp in inputs:
+        disjunction_results = []
+        for disjunction in function:
+            conjunction_result = False
+            for literal in disjunction:
+                if literal == 'True':
+                    conjunction_result = True
+                else:
+                    negation = False
+                    if literal[0] == '~':
+                        negation = True
+                        literal = literal[1:]
+                    pos = literal_order.index(literal)
+                    value = inp[pos]
+                    if not value == negation:
+                        conjunction_result = True
+            disjunction_results += [conjunction_result]
+        total_result = True
+        for r in disjunction_results:
+            if not r:
+                total_result = False
+        output[inp] = int(total_result)
+    return output
+
+def gen_inputs(n):
+    output = list(itertools.product(range(2), repeat = n))
+    return output
