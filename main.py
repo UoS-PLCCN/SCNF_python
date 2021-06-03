@@ -17,8 +17,14 @@ namemap = pickle.load(open("schiebinger_namemap_full.pkl","rb"))    #Map from in
 
 N = 10  #Size of the network to infer
 
+rerun = False
 
-genes = np.floor(np.random.rand(N) * len(namemap)).astype(int)  #randomly selected genes.
+if rerun:
+    genes = pickle.load(open("rerun_genes.tst.pkl","rb"))
+else:
+    genes = np.floor(np.random.rand(N) * len(namemap)).astype(int)  #randomly selected genes.
+    pickle.dump(genes, open("rerun_genes.tst.pkl","wb"))
+
 genedata = utils.trim_genedata(genedata, genes)                 #dataset is trimmed.
 literals = [list(namemap.values())[x] for x in genes]           #Computing the list for literals. Using gene names.
 neg_literals = ['~'+list(namemap.values())[x] for x in genes]           #Computing the list for literals. Using gene names.
@@ -29,15 +35,11 @@ SCNFs = []
 for gene in genes:
     relevant_transitions = utils.trim_outputs(genedata, i)  #Outputs are trimmed
     clause = SCNF.SCNF_Learn(relevant_transitions, literals)
-#    print(clause)
     SCNFs += [clause]
     i += 1
-#print(literal_order)
 PBN = SCNF.SCNF_To_PBN(SCNFs, literal_order)
 function, mask = PBN[0]
-print(mask)
 env = PBN_env.PBN(PBN_data = PBN)
-print(env)
 env.reset()
 for _ in range(10):
     print(env.get_state().astype(int))

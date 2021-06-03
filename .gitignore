@@ -1,1 +1,3 @@
 __pycache__/
+*.tst.pkl
+tests.py
