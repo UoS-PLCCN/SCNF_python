@@ -7,6 +7,7 @@ State = list[bool]
 Transition = tuple[State, State]
 TrimmedTransition = tuple[State, bool]
 
+
 def trim_genedata(transitions: list[Transition], selected_variables: list[int]) -> list[Transition]:
     """Given a set of transitions and selected variables, remove data which does not belong to the selected variables.
 
@@ -17,8 +18,11 @@ def trim_genedata(transitions: list[Transition], selected_variables: list[int]) 
     Returns:
         list[Transition]: A list of tuples with the corresponding data from `selected_variables`.
     """
-    trim = lambda _state: [_state[i] for i in selected_variables]
-    return [(trim(state), trim(next_state)) for state, next_state in transitions]
+    def _trim(_state):
+        return [_state[i] for i in selected_variables]
+
+    return [(_trim(state), _trim(next_state)) for state, next_state in transitions]
+
 
 def trim_transitions(transitions: list[Transition], node: int) -> list[TrimmedTransition]:
     """Trim the next state in a transition to just the value of a single node.

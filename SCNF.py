@@ -1,21 +1,23 @@
 """SCNF.py
+
 Package implementing the algorithms outlined in ``Tractable Learning and Inference for Large-Scale Probabilistic Boolean Networks'' by Ifigeneia Apostolopoulou and Diana Marculescu.
 """
 
 import copy
-import operator
-import numpy as np
-from sympy import *
 import itertools
 import math
+import operator
+
+import numpy as np
 import scipy.optimize as optimize
-import pickle
 
 NEG_SIGN = '~'
+
 
 class Psi_map():
     """Class to keep track of disjunctions, since apparantly lists aren't hashable smh
     """
+
     def __init__(self):
         self.state_indexes = []
         self.disjunctions = []
@@ -35,15 +37,16 @@ class Psi_map():
                     self.disjunctions[j] = disjunction, relevant_p
 
     def assign(self, state, disjunction):
-        if not state in self.state_indexes:
+        if state not in self.state_indexes:
             self.state_indexes += [state]
         state_index = self.state_indexes.index(state)
-        if len(self.disjunctions)-1 < state_index:
+        if len(self.disjunctions) - 1 < state_index:
             self.disjunctions += [(disjunction[0], None)]
         else:
             old_disjunctions = self.disjunctions[state_index]
             old_disjunctions = old_disjunctions + [(disjunction[0], None)]
             self.disjunctions[state_index] = old_disjunctions
+
     def __str__(self):
         output = "Psi:\n"
         for i in range(len(self.state_indexes)):
@@ -51,9 +54,10 @@ class Psi_map():
             output += suboutput
         return output
 
+
 def SCNF_Learn(transitions, literals):
     """Compute the SCNF clause for node i.
-    
+
 
     args:
         transitions [tuple]: The list of transitions of a node i
@@ -61,28 +65,28 @@ def SCNF_Learn(transitions, literals):
     returns:
         ???: The SCNF clause for node i
     """
-    S0, S1, SC = _split_transitions(transitions) #7
-    if len(S0) == 0: #8
-        Phi = [(['True'], 1)] #9
-    elif len(S1) + len(SC) == 0: #10
-        Phi = [(['False'], 1)] #11
-    else: #12
-        Phi = CNF_Logic_Learn(S0, S1 + SC, literals) #13
-        Phi_new = []
-        for phi in Phi:
-            Phi_new += [(phi, 1)]
-        Phi = Phi_new
-    if not len(SC) == 0: #15
-        Theta = CNF_Logic_Learn(SC, S1, literals, debug = False)
+    S0, S1, SC = _split_transitions(transitions)  # 7
+
+    if len(S0) == 0:  # 8
+        Phi = [(['True'], 1)]  # 9
+    elif len(S1) + len(SC) == 0:  # 10
+        Phi = [(['False'], 1)]  # 11
+    else:  # 12
+        Phi = [(phi, 1) for phi in CNF_Logic_Learn(S0, S1 + SC, literals)]  # 13
+
+    if not len(SC) == 0:  # 15
+        Theta = CNF_Logic_Learn(SC, S1, literals, debug=False)
         Theta = CNF_Parameter_Learn(literals, SC, Theta, transitions)
-    else:#21
-        Theta = [(['True'], 1)]#22
-    return Theta + Phi #24 and 25
+    else:  # 21
+        Theta = [(['True'], 1)]  # 22
+
+    return Theta + Phi  # 24 and 25
+
 
 def CNF_Parameter_Learn(literals, SC, Theta, full_transitions):
     """MLE described in page 2726
     """
-    literal_position = literals[:int(len(literals)/2)]
+    literal_position = literals[:int(len(literals) / 2)]
     Psi = Psi_map()
     for h in SC:
         h_disjunctions = []
@@ -92,7 +96,10 @@ def CNF_Parameter_Learn(literals, SC, Theta, full_transitions):
         Psi.assign(h, h_disjunctions)
     p = np.random.rand(len(Theta))
     l = 0.1
-    loss = lambda x: compute_loss(x, Theta, Psi, SC, l, full_transitions, literal_position)
+
+    def loss(x):
+        return compute_loss(x, Theta, Psi, SC, l, full_transitions, literal_position)
+
     bnds = []
     for _ in range(len(Theta)):
         bnds += [(10**-8, 1 - 10 ** -8)]
@@ -103,6 +110,7 @@ def CNF_Parameter_Learn(literals, SC, Theta, full_transitions):
         Theta_New += [(Theta[i], min_loss[i])]
     Theta = Theta_New
     return Theta
+
 
 def compute_loss(p, Theta, Psi, transitions, l, full_transitions, literal_position):
     Theta_New = []
@@ -116,20 +124,22 @@ def compute_loss(p, Theta, Psi, transitions, l, full_transitions, literal_positi
         output -= compute_log_likelihood(t, full_transitions, P0)
     return output
 
+
 def compute_P0(previous_state, Theta, Psi):
     output = 0
     relevant_disjunctions = Psi.get(previous_state)
     for M in range(len(relevant_disjunctions)):
-        m = M+1
-        disjunction_subsets = list(itertools.combinations(relevant_disjunctions,m))
+        m = M + 1
+        disjunction_subsets = list(itertools.combinations(relevant_disjunctions, m))
         probability_sum = 0
         for disjunction_subset in disjunction_subsets:
             p = 1
             for _, probability in disjunction_subset:
                 p *= probability
             probability_sum += probability
-        output += ((-1)**(m+1)) * probability_sum
+        output += ((-1)**(m + 1)) * probability_sum
     return output
+
 
 def compute_log_likelihood(transition, full_transitions, P0):
     N0 = 0
@@ -140,11 +150,11 @@ def compute_log_likelihood(transition, full_transitions, P0):
                 N1 += 1
             else:
                 N0 += 1
-    logloss = N0 * math.log(P0) + N1 * math.log(1-P0)
+    logloss = N0 * math.log(P0) + N1 * math.log(1 - P0)
     return logloss
 
 
-def CNF_Logic_Learn(H0, H1, L, debug = False):
+def CNF_Logic_Learn(H0, H1, L, debug=False):
     """Return the CNF given the positive and negative clauses
 
     args:
@@ -157,18 +167,20 @@ def CNF_Logic_Learn(H0, H1, L, debug = False):
     H0 = copy.deepcopy(H0)
     L = copy.deepcopy(L)
     Phi = []
-    while not len(H0) == 0:#9
-        phi = CNF_Disjunction_Learn(H0, H1, L, [], L[:int(len(L)/2)], debug = debug) #10
-        used_literals = [x for x in phi]
-        H0_new = [] #11
+    while not len(H0) == 0:  # 9
+        phi = CNF_Disjunction_Learn(H0, H1, L, [], L[:int(len(L) / 2)], debug=debug)  # 10
+        # used_literals = [x for x in phi]
+        H0_new = []  # 11
         for h in H0:
-            output_after_disjunction = eval_disjunction(h, phi,L[:int(len(L)/2)])
+            output_after_disjunction = eval_disjunction(h, phi, L[:int(len(L) / 2)])
             if output_after_disjunction:
                 H0_new += [h]
         H0 = copy.deepcopy(H0_new)
-        Phi = Phi + [phi] # 12
-    return Phi #15
-def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug = False):
+        Phi = Phi + [phi]  # 12
+    return Phi  # 15
+
+
+def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug=False):
     """Copy of algorithm 3 from the paper.
     """
     if debug:
@@ -180,80 +192,80 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug = Fals
         print(f"H0: {H0}")
         print(f"H1: {H1}")
         input()
-    if len(L) == 0: #9
+    if len(L) == 0:  # 9
         return []
     score = {}
-    for l in L: # 12
+    for l in L:  # 12
         if debug:
             print(f"Evaluating {l}")
         literal_index = L.index(l)
         negation = False
         if l[0] == NEG_SIGN:
-            literal_index -= int((len(L)/2))
+            literal_index -= int((len(L) / 2))
             negation = True
-        if len(H0) == 0: #13
+        if len(H0) == 0:  # 13
             s = len([x for x in H1 if eval_disjunction(x, phi + [l], literal_positions_global)])
-            score[l] = s/len(H1) #14
+            score[l] = s / len(H1)  # 14
             if debug:
-                print(f"|H0| is empty.")
+                print("|H0| is empty.")
                 print(f"|Satisfied H1|: {s}")
                 print(f"score: {score[l]}")
-        elif len(H1) == 0: #15
+        elif len(H1) == 0:  # 15
             s = len([x for x in H0 if not eval_disjunction(x, phi + [l], literal_positions_global)])
-            score[l] = s/len(H0) #16
+            score[l] = s / len(H0)  # 16
             if debug:
-                print(f"|H1| is empty.")
+                print("|H1| is empty.")
                 print(f"|Satisfied H0|: {s}")
                 print(f"score: {score[l]}")
-        else: #17
+        else:  # 17
             sp = len([x for x in H1 if eval_disjunction(x, phi + [l], literal_positions_global)])
             sn = len([x for x in H0 if eval_disjunction(x, phi + [l], literal_positions_global)])
-            score[l] = sp/len(H1) - sn/len(H0) #20
+            score[l] = sp / len(H1) - sn / len(H0)  # 20
             if debug:
-                print(f"|H1| and |H0| non-empty")
+                print("|H1| and |H0| non-empty")
                 print(f"|desirable transitions|: {sp}")
                 print(f"|undesirable transitions|: {sn}")
                 print(f"score: {score[l]}")
-        #if debug:
+        # if debug:
         #    input()
-    #L22 in alg
-    best_literal = max(score.items(), key = operator.itemgetter(1))[0] # 23
+
+    best_literal = max(score.items(), key=operator.itemgetter(1))[0]  # 23
     if debug:
         print(f"score(l): {score}")
         print(f"l*: {best_literal}")
     literal_index = L.index(best_literal)
     negation = False
     if best_literal[0] == NEG_SIGN:
-        literal_index -= int((len(L)/2))
+        literal_index -= int((len(L) / 2))
         negation = True
     fulfilled_H1 = [x for x in H1 if eval_disjunction(x, phi + [best_literal], literal_positions_global)]
     fulfilled_H0 = [x for x in H0 if eval_disjunction(x, phi + [best_literal], literal_positions_global)]
     H1_remaining = []
     H0_remaining = []
-    for h in H1: #24
-        if not h in fulfilled_H1:
+    for h in H1:  # 24
+        if h not in fulfilled_H1:
             H1_remaining += [h]
-    for h in H0: #25
-        if not h in fulfilled_H0:
+    for h in H0:  # 25
+        if h not in fulfilled_H0:
             H0_remaining += [h]
     if debug:
         print(f"|H0^|: {len(H0_remaining)}")
         print(f"|H1^|: {len(H1_remaining)}")
         input()
-    #L26 in alg
-    if H1_remaining == H1 or len(H0_remaining) == 0: # 26
+
+    if H1_remaining == H1 or len(H0_remaining) == 0:  # 26
         if debug:
             print("Leads to invalid disjunction")
         lit_remaining = copy.deepcopy(L)
         lit_remaining.remove(best_literal)
-        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, literal_positions_global,debug = debug) #27
+        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, literal_positions_global, debug=debug)  # 27
 
-    if len(H1_remaining) == 0: # 29
-        phi_new = phi +[best_literal] #30
+    if len(H1_remaining) == 0:  # 29
+        phi_new = phi + [best_literal]  # 30
         if debug:
             print("All H1s satisfied")
             print("returning {0}".format(phi_new))
-        return phi_new #31
+        return phi_new  # 31
 
     lit_remaining = copy.deepcopy(L)
     lit_remaining.remove(best_literal)
@@ -265,15 +277,18 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug = Fals
             lit_remaining.remove(NEG_SIGN + best_literal)
     if debug:
         print("Going deeper")
-    phi_new = CNF_Disjunction_Learn(H0_remaining, H1_remaining, lit_remaining, phi + [best_literal],literal_positions_global, debug = debug) #33
-    if len(phi_new) == 0: #34
+    phi_new = CNF_Disjunction_Learn(H0_remaining, H1_remaining, lit_remaining, phi +
+                                    [best_literal], literal_positions_global, debug=debug)  # 33
+    if len(phi_new) == 0:  # 34
         lit_remaining = copy.deepcopy(L)
         lit_remaining.remove(best_literal)
         if debug:
             print("Ran out of literals to add?")
-        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi,literal_positions_global, debug = debug) #5
+        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, literal_positions_global, debug=debug)  # 5
 
-    return phi_new #37
+    return phi_new  # 37
+
+
 def _split_transitions(transitions):
     """Split the transitions according to equations 20, 21 and 22 in the paper.
 
@@ -296,7 +311,7 @@ def _split_transitions(transitions):
         else:
             zeros += [s_i]
     for state_1 in ones:
-        if state_1 in zeros and not state_1 in SC:
+        if state_1 in zeros and state_1 not in SC:
             SC += [state_1]
     for both_entry in SC:
         while both_entry in ones:
@@ -306,6 +321,7 @@ def _split_transitions(transitions):
     S0 = zeros
     S1 = ones
     return S0, S1, SC
+
 
 def SCNF_To_PBN(SCNF, literal_order):
     """Convert SCNFN to PBN according to the paper.
@@ -324,22 +340,22 @@ def SCNF_To_PBN(SCNF, literal_order):
             for literal in disjunction:
                 if literal[0] == '~':
                     literal = literal[1:]
-                if not literal in literals_used:
+                if literal not in literals_used:
                     literals_used += [literal]
         for disjunction, _ in Theta:
             for literal in disjunction:
                 if not literal == 'True' and not literal == 'False':
                     if literal[0] == '~':
                         literal = literal[1:]
-                    if not literal in literals_used:
+                    if literal not in literals_used:
                         literals_used += [literal]
-        literals_used.sort(key = lambda x: literal_order.index(x))
-        shape = [2]*len(literals_used)
+        literals_used.sort(key=lambda x: literal_order.index(x))
+        shape = [2] * len(literals_used)
         function_vector = np.zeros(shape)
 
-        Phi_powerset = list(itertools.chain.from_iterable(itertools.combinations(Phi, r) for r in range(len(Phi)+1)))
-        f = Theta
-        n_functions = len(Phi_powerset)
+        Phi_powerset = list(itertools.chain.from_iterable(itertools.combinations(Phi, r) for r in range(len(Phi) + 1)))
+        # f = Theta
+        # n_functions = len(Phi_powerset)
 
         for subpowerset in Phi_powerset:
             probability = 1
@@ -348,7 +364,7 @@ def SCNF_To_PBN(SCNF, literal_order):
                 if clause in subpowerset:
                     probability *= prob
                 else:
-                    probability *= (1-prob)
+                    probability *= (1 - prob)
             logical_function = []
             for func, _ in Theta:
                 logical_function += [func]
@@ -363,10 +379,11 @@ def SCNF_To_PBN(SCNF, literal_order):
         PBN += [(input_mask, function_vector)]
     return PBN
 
+
 def evaluate_function(function, literal_order):
     """Take a CNF expression, and convert it in to a truth-table.
     """
-    shape = [2]*len(literal_order)
+    shape = [2] * len(literal_order)
     output = np.zeros(shape)
     inputs = gen_inputs(len(literal_order))
     for inp in inputs:
@@ -395,6 +412,7 @@ def evaluate_function(function, literal_order):
         output[inp] = int(total_result)
     return output
 
+
 def eval_disjunction(state, disjunction, literal_positions):
     """Evaluate a single disjunction given a state.
     Would be nice to use this for evaluating entire functions
@@ -419,6 +437,7 @@ def eval_disjunction(state, disjunction, literal_positions):
             output = True
     return output
 
+
 def gen_inputs(n):
-    output = list(itertools.product(range(2), repeat = n))
+    output = list(itertools.product(range(2), repeat=n))
     return output

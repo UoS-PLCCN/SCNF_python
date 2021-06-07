@@ -5,16 +5,17 @@ The genedata is from Schiebinger et. al.
 Hence the biological names.
 """
 import pickle
+
 import numpy as np
-import sympy
+
+import PBN_env
 import SCNF
 import utils
-import PBN_env
 
 # Import genedata
 genedata = pickle.load(open("schiebinger_data_full.pkl", "rb"))  # Pre-processed genedata
-namemap = pickle.load(open("schiebinger_namemap_full.pkl", "rb"))  # Map from indexes in the original
-                                                                   # dataset to the names. Positions match.
+# Map from indexes in the original dataset to the names. Positions match.
+namemap = pickle.load(open("schiebinger_namemap_full.pkl", "rb"))
 
 N = 10  # Size of the network to infer
 
@@ -22,10 +23,10 @@ rerun = False  # Re-run from pre-selected genes
 
 # Select genes
 if rerun:
-    genes = pickle.load(open("rerun_genes.tst.pkl","rb"))
+    genes = pickle.load(open("rerun_genes.tst.pkl", "rb"))
 else:
     genes = np.floor(np.random.rand(N) * len(namemap)).astype(int)  # Randomly select genes.
-    pickle.dump(genes, open("rerun_genes.tst.pkl","wb"))  # Save genes to allow re-running withi this selection.
+    pickle.dump(genes, open("rerun_genes.tst.pkl", "wb"))  # Save genes to allow re-running withi this selection.
 
 # Process literals
 genedata = utils.trim_genedata(genedata, genes)  # Trim the dataset.
@@ -47,7 +48,7 @@ for i, gene in enumerate(genes):
 # Convert to PBN
 PBN = SCNF.SCNF_To_PBN(SCNFs, literal_order)
 function, mask = PBN[0]
-env = PBN_env.PBN(PBN_data = PBN)
+env = PBN_env.PBN(PBN_data=PBN)
 
 # Test
 env.reset()
