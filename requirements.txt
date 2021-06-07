@@ -1,0 +1,7 @@
+sympy
+scipy
+numpy
+
+# PBN_env
+networkx
+matplotlib

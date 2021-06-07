@@ -1,9 +1,9 @@
 """main.py
+
 Example file for the use of the SCNF module.
 The genedata is from Schiebinger et. al.
 Hence the biological names.
 """
-
 import pickle
 import numpy as np
 import sympy
@@ -11,37 +11,46 @@ import SCNF
 import utils
 import PBN_env
 
-genedata = pickle.load(open("schiebinger_data_full.pkl","rb"))      #Pre-processed genedata
-namemap = pickle.load(open("schiebinger_namemap_full.pkl","rb"))    #Map from indexes in the original
-                                                                    #dataset to the names. Positions match.
+# Import genedata
+genedata = pickle.load(open("schiebinger_data_full.pkl", "rb"))  # Pre-processed genedata
+namemap = pickle.load(open("schiebinger_namemap_full.pkl", "rb"))  # Map from indexes in the original
+                                                                   # dataset to the names. Positions match.
 
-N = 10  #Size of the network to infer
+N = 10  # Size of the network to infer
 
-rerun = False
+rerun = False  # Re-run from pre-selected genes
 
+# Select genes
 if rerun:
     genes = pickle.load(open("rerun_genes.tst.pkl","rb"))
 else:
-    genes = np.floor(np.random.rand(N) * len(namemap)).astype(int)  #randomly selected genes.
-    pickle.dump(genes, open("rerun_genes.tst.pkl","wb"))
+    genes = np.floor(np.random.rand(N) * len(namemap)).astype(int)  # Randomly select genes.
+    pickle.dump(genes, open("rerun_genes.tst.pkl","wb"))  # Save genes to allow re-running withi this selection.
 
-genedata = utils.trim_genedata(genedata, genes)                 #dataset is trimmed.
-literals = [list(namemap.values())[x] for x in genes]           #Computing the list for literals. Using gene names.
-neg_literals = ['~'+list(namemap.values())[x] for x in genes]           #Computing the list for literals. Using gene names.
+# Process literals
+genedata = utils.trim_genedata(genedata, genes)  # Trim the dataset.
+
+literals = [list(namemap.values())[x] for x in genes]  # Computing the list for literals using gene names.
+neg_literals = ['~' + literal for literal in literals]  # Computing the list for negated literals.
+
 literals += neg_literals
-literal_order = literals[:int(len(literals)/2)]
-i = 0
+literal_order = literals[:len(literals) // 2]
+
+# Learn SCNFN
 SCNFs = []
-for gene in genes:
-    relevant_transitions = utils.trim_outputs(genedata, i)  #Outputs are trimmed
+
+for i, gene in enumerate(genes):
+    relevant_transitions = utils.trim_transitions(genedata, i)  # Transitions are trimmed
     clause = SCNF.SCNF_Learn(relevant_transitions, literals)
     SCNFs += [clause]
-    i += 1
+
+# Convert to PBN
 PBN = SCNF.SCNF_To_PBN(SCNFs, literal_order)
 function, mask = PBN[0]
 env = PBN_env.PBN(PBN_data = PBN)
+
+# Test
 env.reset()
 for _ in range(10):
     print(env.get_state().astype(int))
     env.step()
-
