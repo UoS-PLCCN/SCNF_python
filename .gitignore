@@ -1,3 +1,23 @@
+# Python
 __pycache__/
 *.tst.pkl
 tests.py
+.env/
+.pytest_cache/
+
+# Setuptools stuff
+build/
+dist/
+.eggs/
+PKG-INFO
+*.egg-info
+*.egg-link
+
+# Coverage stuff
+htmlcov/
+coverage.xml
+.coverage
+
+# Editor stuff
+.idea/
+.vscode/
