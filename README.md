@@ -7,3 +7,11 @@ A Python implementation of the SCNFNs, a PBN-alternative optimized for inference
 - [x] SCNFN to PBN Conversion.
 - [ ] PBN to SCNFN Conversion.
 - [x] Integration of Schiebinger data.
+
+## Usage
+Install with:
+```sh
+python -m pip install git+https://github.com/vjsliogeris/SCNF_python.git
+```
+
+For an example of usage, refer to `main.py` of this repository.
