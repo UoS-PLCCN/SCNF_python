@@ -114,7 +114,7 @@ def CNF_Disjunction_Learn(
             print(f"Scoring {literal}")
 
         if len(H0) == 0:  # 13
-            s = len([x for x in H1 if eval_disjunction(x, phi + [literal], literal_positions_global)])
+            s = len([x for x in H1 if eval_disjunction(x, [literal], literal_positions_global)])
             score[literal] = s / len(H1)  # 14
 
             if DEBUG:
@@ -123,7 +123,7 @@ def CNF_Disjunction_Learn(
                 print(f"score: {score[literal]}")
 
         elif len(H1) == 0:  # 15
-            s = len([x for x in H0 if not eval_disjunction(x, phi + [literal], literal_positions_global)])
+            s = len([x for x in H0 if not eval_disjunction(x, [literal], literal_positions_global)])
             score[literal] = s / len(H0)  # 16
 
             if DEBUG:
@@ -132,8 +132,8 @@ def CNF_Disjunction_Learn(
                 print(f"score: {score[literal]}")
 
         else:  # 17
-            score_positive = len([x for x in H1 if eval_disjunction(x, phi + [literal], literal_positions_global)])
-            score_negative = len([x for x in H0 if eval_disjunction(x, phi + [literal], literal_positions_global)])
+            score_positive = len([x for x in H1 if eval_disjunction(x, [literal], literal_positions_global)])  # 18
+            score_negative = len([x for x in H0 if eval_disjunction(x, [literal], literal_positions_global)])  # 19
             score[literal] = score_positive / len(H1) - score_negative / len(H0)  # 20
 
             if DEBUG:
@@ -150,8 +150,8 @@ def CNF_Disjunction_Learn(
         print(f"l*: {best_literal}")
 
     # Check what the remaining states to fulfil constraints for look like after the addition of the "best" literal.
-    fulfilled_H1 = set([x for x in H1 if eval_disjunction(x, phi + [best_literal], literal_positions_global)])
-    fulfilled_H0 = set([x for x in H0 if eval_disjunction(x, phi + [best_literal], literal_positions_global)])
+    fulfilled_H1 = set([x for x in H1 if eval_disjunction(x, [best_literal], literal_positions_global)])
+    fulfilled_H0 = set([x for x in H0 if eval_disjunction(x, [best_literal], literal_positions_global)])
     H1_remaining = H1 - fulfilled_H1  # 24
     H0_remaining = H0 - fulfilled_H0  # 25
 
