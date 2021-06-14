@@ -6,6 +6,7 @@ Hence the biological names.
 """
 import pickle
 import sys
+from pathlib import Path
 from time import time
 
 import numpy as np
@@ -16,9 +17,9 @@ from scnfn.scnf.learn import SCNF_Learn
 from scnfn.utils import trim_genedata, trim_transitions
 
 # Import genedata
-genedata = pickle.load(open("schiebinger_data_full.pkl", "rb"))  # Pre-processed genedata
+genedata = pickle.load(open("data/schiebinger_data_full.pkl", "rb"))  # Pre-processed genedata
 # Map from indexes in the original dataset to the names. Positions match.
-namemap = pickle.load(open("schiebinger_namemap_full.pkl", "rb"))
+namemap = pickle.load(open("data/schiebinger_namemap_full.pkl", "rb"))
 
 N = 750  # Size of the network to infer
 
@@ -26,10 +27,10 @@ rerun = False  # Re-run from pre-selected genes
 
 # Select genes
 if rerun:
-    genes = pickle.load(open("rerun_genes.tst.pkl", "rb"))
+    genes = pickle.load(open("data/rerun_genes.tst.pkl", "rb"))
 else:
     genes = np.floor(np.random.rand(N) * len(namemap)).astype(int)  # Randomly select genes.
-    pickle.dump(genes, open("rerun_genes.tst.pkl", "wb"))  # Save genes to allow re-running withi this selection.
+    pickle.dump(genes, open("data/rerun_genes.tst.pkl", "wb"))  # Save genes to allow re-running withi this selection.
 
 # Process literals
 genedata = trim_genedata(genedata, genes)  # Trim the dataset.
@@ -58,7 +59,11 @@ function, mask = PBN[0]
 env = PBN_env.PBN(PBN_data=PBN)
 
 # Save to file
-with open(f"SCNFN_PBN_{N}.tst.pkl", "wb") as f:
+model_path = Path("models") / f"SCNFN_PBN_{N}.tst.pkl"
+if not model_path.parent.exists():
+    model_path.parent.mkdir()
+
+with open(model_path, "wb") as f:
     pickle.dump(env, f)
 
 # Test
