@@ -113,6 +113,7 @@ def CNF_Parameter_Learn(literals, SC, Theta, full_transitions):
 
 
 def compute_loss(p, Theta, Psi, transitions, l, full_transitions, literal_position):
+    Theta = copy.deepcopy(Theta)
     Theta_New = []
     for i in range(len(Theta)):
         Theta_New += [(Theta[i], p[i])]
@@ -136,7 +137,7 @@ def compute_P0(previous_state, Theta, Psi):
             p = 1
             for _, probability in disjunction_subset:
                 p *= probability
-            probability_sum += probability
+            probability_sum += p
         output += ((-1)**(m + 1)) * probability_sum
     return output
 
@@ -204,22 +205,22 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug=False)
             literal_index -= int((len(L) / 2))
             negation = True
         if len(H0) == 0:  # 13
-            s = len([x for x in H1 if eval_disjunction(x, phi + [l], literal_positions_global)])
+            s = len([x for x in H1 if eval_disjunction(x, [l], literal_positions_global)])
             score[l] = s / len(H1)  # 14
             if debug:
                 print("|H0| is empty.")
                 print(f"|Satisfied H1|: {s}")
                 print(f"score: {score[l]}")
         elif len(H1) == 0:  # 15
-            s = len([x for x in H0 if not eval_disjunction(x, phi + [l], literal_positions_global)])
+            s = len([x for x in H0 if not eval_disjunction(x, [l], literal_positions_global)])
             score[l] = s / len(H0)  # 16
             if debug:
                 print("|H1| is empty.")
                 print(f"|Satisfied H0|: {s}")
                 print(f"score: {score[l]}")
         else:  # 17
-            sp = len([x for x in H1 if eval_disjunction(x, phi + [l], literal_positions_global)])
-            sn = len([x for x in H0 if eval_disjunction(x, phi + [l], literal_positions_global)])
+            sp = len([x for x in H1 if eval_disjunction(x, [l], literal_positions_global)])
+            sn = len([x for x in H0 if eval_disjunction(x, [l], literal_positions_global)])
             score[l] = sp / len(H1) - sn / len(H0)  # 20
             if debug:
                 print("|H1| and |H0| non-empty")
@@ -238,8 +239,8 @@ def CNF_Disjunction_Learn(H0, H1, L, phi, literal_positions_global, debug=False)
     if best_literal[0] == NEG_SIGN:
         literal_index -= int((len(L) / 2))
         negation = True
-    fulfilled_H1 = [x for x in H1 if eval_disjunction(x, phi + [best_literal], literal_positions_global)]
-    fulfilled_H0 = [x for x in H0 if eval_disjunction(x, phi + [best_literal], literal_positions_global)]
+    fulfilled_H1 = [x for x in H1 if eval_disjunction(x, [best_literal], literal_positions_global)]
+    fulfilled_H0 = [x for x in H0 if eval_disjunction(x, [best_literal], literal_positions_global)]
     H1_remaining = []
     H0_remaining = []
     for h in H1:  # 24
@@ -417,7 +418,8 @@ def eval_disjunction(state, disjunction, literal_positions):
     """Evaluate a single disjunction given a state.
     Would be nice to use this for evaluating entire functions
     """
-    disjunction = copy.deepcopy(disjunction)
+    disjunction = [literal for literal in disjunction]
+    # disjunction = copy.deepcopy(disjunction)
     value_mask = np.ones(len(disjunction), dtype=bool)
     for i in range(len(disjunction)):
         literal = disjunction[i]
