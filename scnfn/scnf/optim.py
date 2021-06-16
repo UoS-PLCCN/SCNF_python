@@ -26,6 +26,8 @@ class Psi0():
         return self.map[key]
 
     def __setitem__(self, key: State, value: Union[CNF, SCNF]):
+        if type(value[0]) != tuple:
+            value = [(disjunction, None) for disjunction in value]
         self.map[key] = value
 
     def assign_probabilities(self, Theta: CNF, p: np.ndarray):
@@ -36,9 +38,10 @@ class Psi0():
             p (np.ndarray): The probability to assign.
         """
         for relevant_theta, relevant_p in zip(Theta, p):
-            for j, (disjunction, _) in enumerate(self.map.values()):
-                if disjunction == relevant_theta:
-                    self.disjunctions[j] = disjunction, relevant_p
+            for state, disjunctions in self.map.items():
+                for k, (disjunction, _) in enumerate(disjunctions):
+                    if disjunction == relevant_theta:
+                        self.map[state][k] = disjunction, relevant_p
 
 
 def compute_loss(
@@ -70,7 +73,7 @@ def compute_loss(
 
     # Equation 31
     for _lambda in SC:
-        P0_lambda = compute_P0(_lambda, Theta, Psi)
+        P0_lambda = compute_P0(_lambda, Psi)
         log_likelihood_lambda = compute_log_likelihood(_lambda, all_transitions, P0_lambda)
         Sigma += log_likelihood_lambda
 
@@ -99,7 +102,7 @@ def compute_P0(_lambda: State, Psi: Psi0) -> float:
 
         # Sum of the product of probabilities for all disjunction subsets
         probability_sum = sum([
-            math.prod([p_jm_n for p_jm_n in Theta_jm]) for Theta_jm in Psi0_lambda_m
+            math.prod([p_jm_n for _, p_jm_n in Theta_jm]) for Theta_jm in Psi0_lambda_m
         ])
 
         # Add to final sum

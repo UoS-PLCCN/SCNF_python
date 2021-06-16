@@ -34,7 +34,7 @@ def SCNF_Learn(transitions: list[TrimmedTransition], literals: list[str]) -> SCN
     elif len(S1.union(SC)) == 0:  # 10
         Phi = [(['False'], 1)]  # 11
     else:  # 12
-        Phi = [(phi, 1) for phi in CNF_Logic_Learn(S0, S1 + SC, literals)]  # 13
+        Phi = [(phi, 1) for phi in CNF_Logic_Learn(S0, S1.union(SC), literals)]  # 13
 
     # Compute the stochastic portion of the SCNF rule.
     if not len(SC) == 0:  # 15
@@ -66,7 +66,7 @@ def CNF_Logic_Learn(H0: set[State], H1: set[State], L: list[str]) -> CNF:
 
     while not len(H0) == 0:  # 9
         phi = CNF_Disjunction_Learn(H0, H1, L, [], L_order)  # 10
-        H0 = [h for h in H0 if eval_disjunction(h, phi, L_order) is True]  # 11
+        H0 = set(h for h in H0 if eval_disjunction(h, phi, L_order) is True)  # 11
         Phi.append(phi)  # 12
 
     return Phi  # 15

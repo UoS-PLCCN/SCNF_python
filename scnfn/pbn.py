@@ -41,7 +41,7 @@ def SCNF_To_PBN(SCNFN: SCNF, literal_order: list[str]) -> PBN:
             _literal = literal
             if literal[0] == '~':
                 _literal = literal[1:]
-            if literal not in literals_used and literal not in ["True", "False"]:
+            if _literal not in literals_used and _literal not in ["True", "False"]:
                 literals_used.append(_literal)
 
         for disjunction, _ in Phi:
@@ -57,7 +57,7 @@ def SCNF_To_PBN(SCNFN: SCNF, literal_order: list[str]) -> PBN:
         function_vector = np.zeros([2] * len(literals_used))  # f^(i)
 
         # Powerset of all possible subsets
-        Theta_powerset = [chain.from_iterable(combinations(Theta, r) for r in range(len(Theta) + 1))]
+        Theta_powerset = list(chain.from_iterable(combinations(Theta, r) for r in range(len(Theta) + 1)))
 
         for beta_j in Theta_powerset:
             # Equation 12 + 13.
