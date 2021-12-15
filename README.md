@@ -11,7 +11,8 @@ A Python implementation of the SCNFNs, a PBN-alternative optimized for inference
 ## Usage
 Install with:
 ```sh
-python -m pip install git+https://github.com/vjsliogeris/SCNF_python.git
+python -m pip install git+https://github.com/UoS-PLCCN/SCNF_python.git
 ```
 
-For an example of usage, refer to `main.py` of this repository.
+### Example
+For an example of usage, refer to `main.py` of this repository. To run it, you need to install the package with the `demo` extras.

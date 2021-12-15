@@ -4,6 +4,7 @@ Implementations for SCNF clause learning and its associated algorithms.
 """
 import copy
 import operator
+from typing import List, Set
 
 import numpy as np
 import scipy.optimize as optimize
@@ -16,12 +17,12 @@ from scnfn.scnf.utils import split_transitions
 from scnfn.types import State, TrimmedTransition
 
 
-def SCNF_Learn(transitions: list[TrimmedTransition], literals: list[str]) -> SCNF:
+def SCNF_Learn(transitions: List[TrimmedTransition], literals: List[str]) -> SCNF:
     """Compute the SCNF clause for node `i`. (Algorithm 1 from the paper.)
 
     Args:
-        transitions (list[TrimmedTransition]): The list of trimmed transitions of a given node `i`.
-        literals (list[str]): The set of the available literals (gene names).
+        transitions (List[TrimmedTransition]): The list of trimmed transitions of a given node `i`.
+        literals (List[str]): The set of the available literals (gene names).
     Returns:
         SCNF: The SCNF clause for node `i`, so a list of tuples of disjunctions and their associated probabilities.
     """
@@ -30,9 +31,9 @@ def SCNF_Learn(transitions: list[TrimmedTransition], literals: list[str]) -> SCN
 
     # Compute the deterministic portion of the SCNF rule.
     if len(S0) == 0:  # 8
-        Phi = [(['True'], 1)]  # 9
+        Phi = [(["True"], 1)]  # 9
     elif len(S1.union(SC)) == 0:  # 10
-        Phi = [(['False'], 1)]  # 11
+        Phi = [(["False"], 1)]  # 11
     else:  # 12
         Phi = [(phi, 1) for phi in CNF_Logic_Learn(S0, S1.union(SC), literals)]  # 13
 
@@ -41,19 +42,19 @@ def SCNF_Learn(transitions: list[TrimmedTransition], literals: list[str]) -> SCN
         Theta = CNF_Logic_Learn(SC, S1, literals)
         Theta = CNF_Parameter_Learn(literals, SC, Theta, transitions)
     else:  # 21
-        Theta = [(['True'], 1)]  # 22
+        Theta = [(["True"], 1)]  # 22
 
     return Theta + Phi  # 24 and 25
 
 
-def CNF_Logic_Learn(H0: set[State], H1: set[State], L: list[str]) -> CNF:
+def CNF_Logic_Learn(H0: Set[State], H1: Set[State], L: List[str]) -> CNF:
     """Return the CNF given the positive and negative clauses.\
         (Algorithm 2 from the paper.)
 
     Args:
-        H0 (set[State]): The set of states resulting in a negative node value.
-        H1 (set[State]): The set of states resulting in a positive node value.
-        L (list[str]): The set of available literals.
+        H0 (Set[State]): The set of states resulting in a negative node value.
+        H1 (Set[State]): The set of states resulting in a positive node value.
+        L (List[str]): The set of available literals.
 
     Returns:
         CNF: A CNF clause, which returns 0 for all states in H0, and 1 for all states in H1.
@@ -61,7 +62,7 @@ def CNF_Logic_Learn(H0: set[State], H1: set[State], L: list[str]) -> CNF:
     # Making a copy of the arguments since Python *is* pass by reference.
     H0 = copy.deepcopy(H0)
     L = copy.deepcopy(L)
-    L_order = L[:len(L) // 2]  # Order of only the actual literals, not their negations
+    L_order = L[: len(L) // 2]  # Order of only the actual literals, not their negations
     Phi = []
 
     while not len(H0) == 0:  # 9
@@ -73,8 +74,11 @@ def CNF_Logic_Learn(H0: set[State], H1: set[State], L: list[str]) -> CNF:
 
 
 def CNF_Disjunction_Learn(
-    H0: set[State], H1: set[State], L: list[str], phi: Disjunction,
-    literal_positions_global: list[str]
+    H0: Set[State],
+    H1: Set[State],
+    L: List[str],
+    phi: Disjunction,
+    literal_positions_global: List[str],
 ) -> Disjunction:
     """Learn a disjunction that satisfies two conditions:\
          evaluating to 0 for at lesat one state in the H0 set of states,\
@@ -82,11 +86,11 @@ def CNF_Disjunction_Learn(
        Recursive function: each recursive call inserts a new literal in the current disjunction.
 
     Args:
-        H0 (set[State]): The set of states H0, from which at least one state will evaluate the learnt disjunction to 0.
-        H1 (set[State]): The set of states H1, from which all states will evaluate the learnt disjunction to 1.
-        L (list[str]): The set of available literals.
+        H0 (Set[State]): The set of states H0, from which at least one state will evaluate the learnt disjunction to 0.
+        H1 (Set[State]): The set of states H1, from which all states will evaluate the learnt disjunction to 1.
+        L (List[str]): The set of available literals.
         phi (CNF): The currently formed disjunction.
-        literal_positions_global (list[str]): All the available literals, globally\
+        literal_positions_global (List[str]): All the available literals, globally\
             (i.e. not in the current recursive call).
 
     Returns:
@@ -114,7 +118,13 @@ def CNF_Disjunction_Learn(
             print(f"Scoring {literal}")
 
         if len(H0) == 0:  # 13
-            s = len([x for x in H1 if eval_disjunction(x, [literal], literal_positions_global)])
+            s = len(
+                [
+                    x
+                    for x in H1
+                    if eval_disjunction(x, [literal], literal_positions_global)
+                ]
+            )
             score[literal] = s / len(H1)  # 14
 
             if DEBUG:
@@ -123,7 +133,13 @@ def CNF_Disjunction_Learn(
                 print(f"score: {score[literal]}")
 
         elif len(H1) == 0:  # 15
-            s = len([x for x in H0 if not eval_disjunction(x, [literal], literal_positions_global)])
+            s = len(
+                [
+                    x
+                    for x in H0
+                    if not eval_disjunction(x, [literal], literal_positions_global)
+                ]
+            )
             score[literal] = s / len(H0)  # 16
 
             if DEBUG:
@@ -132,8 +148,20 @@ def CNF_Disjunction_Learn(
                 print(f"score: {score[literal]}")
 
         else:  # 17
-            score_positive = len([x for x in H1 if eval_disjunction(x, [literal], literal_positions_global)])  # 18
-            score_negative = len([x for x in H0 if eval_disjunction(x, [literal], literal_positions_global)])  # 19
+            score_positive = len(
+                [
+                    x
+                    for x in H1
+                    if eval_disjunction(x, [literal], literal_positions_global)
+                ]
+            )  # 18
+            score_negative = len(
+                [
+                    x
+                    for x in H0
+                    if eval_disjunction(x, [literal], literal_positions_global)
+                ]
+            )  # 19
             score[literal] = score_positive / len(H1) - score_negative / len(H0)  # 20
 
             if DEBUG:
@@ -143,15 +171,21 @@ def CNF_Disjunction_Learn(
                 print(f"score: {score[literal]}")
 
     # Select the literal with the maximum score.
-    best_literal = max(score.items(), key=operator.itemgetter(1))[0]  # 23, basically just argmax with a dict
+    best_literal = max(score.items(), key=operator.itemgetter(1))[
+        0
+    ]  # 23, basically just argmax with a dict
 
     if DEBUG:
         print(f"score(l): {score}")
         print(f"l*: {best_literal}")
 
     # Check what the remaining states to fulfil constraints for look like after the addition of the "best" literal.
-    fulfilled_H1 = set([x for x in H1 if eval_disjunction(x, [best_literal], literal_positions_global)])
-    fulfilled_H0 = set([x for x in H0 if eval_disjunction(x, [best_literal], literal_positions_global)])
+    fulfilled_H1 = set(
+        [x for x in H1 if eval_disjunction(x, [best_literal], literal_positions_global)]
+    )
+    fulfilled_H0 = set(
+        [x for x in H0 if eval_disjunction(x, [best_literal], literal_positions_global)]
+    )
     H1_remaining = H1 - fulfilled_H1  # 24
     H0_remaining = H0 - fulfilled_H0  # 25
 
@@ -168,7 +202,9 @@ def CNF_Disjunction_Learn(
 
         lit_remaining = copy.deepcopy(L)
         lit_remaining.remove(best_literal)
-        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, literal_positions_global)  # 27
+        return CNF_Disjunction_Learn(
+            H0, H1, lit_remaining, phi, literal_positions_global
+        )  # 27
 
     # If no more positive transitions to add literals for remain after the addition of the "best" literal
     # Then just return the disjunction with the new literal.
@@ -200,7 +236,11 @@ def CNF_Disjunction_Learn(
         print("Going deeper")
 
     phi_new = CNF_Disjunction_Learn(
-        H0_remaining, H1_remaining, lit_remaining, phi + [best_literal], literal_positions_global
+        H0_remaining,
+        H1_remaining,
+        lit_remaining,
+        phi + [best_literal],
+        literal_positions_global,
     )  # 33
 
     # If for whatever reason the new learnt disjunction after adding the best literal and removing it
@@ -212,35 +252,42 @@ def CNF_Disjunction_Learn(
         if DEBUG:
             print("Ran out of literals to add?")
 
-        return CNF_Disjunction_Learn(H0, H1, lit_remaining, phi, literal_positions_global)  # 5
+        return CNF_Disjunction_Learn(
+            H0, H1, lit_remaining, phi, literal_positions_global
+        )  # 5
 
     return phi_new  # 37
 
 
 def CNF_Parameter_Learn(
-    literals: list[str], SC: set[State], Theta: CNF, all_transitions: list[TrimmedTransition]
+    literals: List[str],
+    SC: Set[State],
+    Theta: CNF,
+    all_transitions: List[TrimmedTransition],
 ) -> SCNF:
     """Learn the SCNF Bernoulli variable parameters through solving an optimization problem.\
         Implementation of the MLE described in page 2726 of the publication.
 
     Args:
-        literals (list[str]): The available literals.
-        SC (set[State]): The set of states that result in the target node's value being either 0 or 1.
+        literals (List[str]): The available literals.
+        SC (Set[State]): The set of states that result in the target node's value being either 0 or 1.
         Theta (CNF): The CNF (list of disjunctions) to learn the parameters for.
-        all_transitions (list[TrimmedTransition]): All of the transitions for node `i`.
+        all_transitions (List[TrimmedTransition]): All of the transitions for node `i`.
 
     Returns:
         SCNF: An SCNF clause with probabilities for each disjunction of the underlying CNF\
             learnt to maximize the probability of the original distribution.
     """
     # Get the positions of the literals in the state.
-    literal_positions = literals[:len(literals) // 2]
+    literal_positions = literals[: len(literals) // 2]
 
     # Equation 23.
     Psi = Psi0()
     for _lambda in SC:
         Psi0_lambda = [
-            disjunction for disjunction in Theta if not eval_disjunction(_lambda, disjunction, literal_positions)
+            disjunction
+            for disjunction in Theta
+            if not eval_disjunction(_lambda, disjunction, literal_positions)
         ]
         Psi[_lambda] = Psi0_lambda
 
@@ -254,7 +301,7 @@ def CNF_Parameter_Learn(
     # Define the bounds on the probability variables that are optimized
     bounds = []
     for _ in range(len(Theta)):
-        bounds.append((10**-8, 1 - 10 ** -8))
+        bounds.append((10 ** -8, 1 - 10 ** -8))
     bounds = tuple(bounds)
 
     # Calculate p to get the minimum loss.

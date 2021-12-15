@@ -2,18 +2,21 @@
 
 Helper methods for the learning algorithm.
 """
+from typing import List, Set, Tuple
 
 from scnfn.types import State, TrimmedTransition
 
 
-def split_transitions(transitions: list[TrimmedTransition]) -> tuple[set[State], set[State], set[State]]:
+def split_transitions(
+    transitions: List[TrimmedTransition],
+) -> Tuple[Set[State], Set[State], Set[State]]:
     """Split the transitions into the S0, S1 and SC sets, according to equations 20, 21 and 22 in the paper.
 
     Args:
-        transitions (list[TrimmedTransition]): A list of trimmed transitions.
+        transitions (List[TrimmedTransition]): A list of trimmed transitions.
 
     Returns:
-        tuple[set[State], set[State], set[State]]:\
+        Tuple[Set[State], Set[State], Set[State]]:\
             The tuple of three sets of trimmed transitions, in the following order:
             S0: All states that only result in the target node's value being 0
             S1: All states that only result in the target node's value being 1

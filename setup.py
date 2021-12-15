@@ -1,11 +1,12 @@
 from pathlib import Path
+from typing import List
 
 from setuptools import find_packages, setup
 
 cwd = Path(__file__).parent
 
 
-def read(fname: str) -> list[str]:
+def read(fname: str) -> List[str]:
     with open(cwd / fname) as f:
         content = f.read()
     return content.splitlines()
@@ -18,10 +19,9 @@ setup(
         "sympy",
         "scipy",
         "numpy",
-        "networkx",  # PBN_env
-        "matplotlib",  # PBN_env
     ],
     extras_require={
-        "dev": ["flake8", "isort", "pytest", "pytest-cov"]
-    }
+        "dev": ["flake8", "isort", "pytest", "pytest-cov"],
+        "demo": ["gym-PBN"],
+    },
 )

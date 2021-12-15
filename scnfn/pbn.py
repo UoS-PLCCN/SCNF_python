@@ -4,6 +4,7 @@ Utilities to convert to and from PBN.
 """
 from itertools import chain, combinations
 from math import prod
+from typing import List
 
 import numpy as np
 
@@ -12,12 +13,12 @@ from scnfn.scnf.types import SCNF
 from scnfn.types import PBN
 
 
-def SCNF_To_PBN(SCNFN: SCNF, literal_order: list[str]) -> PBN:
+def SCNF_To_PBN(SCNFN: SCNF, literal_order: List[str]) -> PBN:
     """Convert SCNFN to PBN according to Proposition I on pages 2272-2273 of the paper.
 
     Args:
         SCNFN (SCNF): The list SCNF clauses making an SCNFN.
-        literal_order (list[str]): The order of the literals in the SCNFN state.
+        literal_order (List[str]): The order of the literals in the SCNFN state.
 
     Returns:
         PBN: Data defining a PBN.
@@ -39,7 +40,7 @@ def SCNF_To_PBN(SCNFN: SCNF, literal_order: list[str]) -> PBN:
 
         def _add_literal(literal: str):
             _literal = literal
-            if literal[0] == '~':
+            if literal[0] == "~":
                 _literal = literal[1:]
             if _literal not in literals_used and _literal not in ["True", "False"]:
                 literals_used.append(_literal)
@@ -57,7 +58,9 @@ def SCNF_To_PBN(SCNFN: SCNF, literal_order: list[str]) -> PBN:
         function_vector = np.zeros([2] * len(literals_used))  # f^(i)
 
         # Powerset of all possible subsets
-        Theta_powerset = list(chain.from_iterable(combinations(Theta, r) for r in range(len(Theta) + 1)))
+        Theta_powerset = list(
+            chain.from_iterable(combinations(Theta, r) for r in range(len(Theta) + 1))
+        )
 
         for beta_j in Theta_powerset:
             # Equation 12 + 13.
@@ -65,7 +68,9 @@ def SCNF_To_PBN(SCNFN: SCNF, literal_order: list[str]) -> PBN:
             f_j = [f for f, _ in Phi] + [f for f, _ in beta_j]
 
             # Equation 14.
-            probability = prod([q_z if (x, q_z) in beta_j else (1 - q_z) for x, q_z in Theta])
+            probability = prod(
+                [q_z if (x, q_z) in beta_j else (1 - q_z) for x, q_z in Theta]
+            )
 
             # Convert f_j to its truth table.
             vector = eval_function(f_j, literals_used) * probability

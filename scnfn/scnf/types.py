@@ -1,6 +1,8 @@
+from typing import List, Tuple
+
 Literal = str
 Probability = float
 
-Disjunction = list[Literal]
-CNF = list[Disjunction]
-SCNF = list[tuple[Disjunction, Probability]]
+Disjunction = List[Literal]
+CNF = List[Disjunction]
+SCNF = List[Tuple[Disjunction, Probability]]

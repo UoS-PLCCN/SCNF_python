@@ -3,6 +3,7 @@
 Implementation for Boolean disjunction / clause evaluation.
 """
 import itertools
+from typing import List
 
 import numpy as np
 
@@ -11,14 +12,16 @@ from scnfn.scnf.types import CNF, Disjunction
 from scnfn.types import State
 
 
-def eval_disjunction(state: State, disjunction: Disjunction, literal_positions: list[str]) -> bool:
+def eval_disjunction(
+    state: State, disjunction: Disjunction, literal_positions: List[str]
+) -> bool:
     """Evaluate a single disjunction given a state.
     TODO: Would be nice to use this for evaluating entire functions.
 
     Args:
         state (State): The state.
         disjunction (Disjunction): The disjunction to evaluate.
-        literal_positions (list[str]): A list of the literals\
+        literal_positions (List[str]): A list of the literals\
             in the same positions their in the state values can be found in.
 
     Returns:
@@ -39,7 +42,7 @@ def eval_disjunction(state: State, disjunction: Disjunction, literal_positions: 
 
     for i, literal in enumerate(disjunction):
         # If there's a 'True' literal, just return
-        if literal == 'True':
+        if literal == "True":
             return True
 
         # Otherwise, get the value of the literal in the state
@@ -51,9 +54,9 @@ def eval_disjunction(state: State, disjunction: Disjunction, literal_positions: 
     return False
 
 
-def eval_function(function: CNF, literal_order: list[str]) -> np.ndarray:
-    """Take a CNF expression, and convert it in to a truth-table.
-    """
+def eval_function(function: CNF, literal_order: List[str]) -> np.ndarray:
+    """Take a CNF expression, and convert it in to a truth-table."""
+
     def _gen_inputs(n: int) -> list:
         """Get all possible combinations of a boolean state with n variables.
 
@@ -66,7 +69,9 @@ def eval_function(function: CNF, literal_order: list[str]) -> np.ndarray:
         output = list(itertools.product([0, 1], repeat=n))
         return output
 
-    output = np.zeros([2] * len(literal_order))  # Truth table, all possible combinations.
+    output = np.zeros(
+        [2] * len(literal_order)
+    )  # Truth table, all possible combinations.
     inputs = _gen_inputs(len(literal_order))  # Get all possible CNF inputs.
 
     for _input in inputs:
@@ -85,7 +90,9 @@ def eval_function(function: CNF, literal_order: list[str]) -> np.ndarray:
                         false_value = True
                         literal = literal[1:]
 
-                    value = _input[literal_order.index(literal)]  # Literal value from input
+                    value = _input[
+                        literal_order.index(literal)
+                    ]  # Literal value from input
                     result = value != false_value
 
                     if result:

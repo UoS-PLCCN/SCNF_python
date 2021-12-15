@@ -1,9 +1,9 @@
-from typing import Iterable
+from typing import Iterable, List, Tuple
 
 import numpy as np
 
 State = Iterable[bool]
-Transition = tuple[State, State]
-TrimmedTransition = tuple[State, bool]
+Transition = Tuple[State, State]
+TrimmedTransition = Tuple[State, bool]
 
-PBN = list[tuple[np.ndarray, np.ndarray]]
+PBN = List[Tuple[np.ndarray, np.ndarray]]

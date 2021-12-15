@@ -5,7 +5,7 @@ Optimization Problem-related functions and utilities to learn the Bernounlli var
 import copy
 import itertools
 import math
-from typing import Union
+from typing import List, Set, Union
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from scnfn.scnf.types import CNF, SCNF
 from scnfn.types import State, TrimmedTransition
 
 
-class Psi0():
+class Psi0:
     """A class encapsulating a map to act as the Psi0 function as defined in Equation 23 of the paper.
 
     The keys of the map are states (tuples) and the values are relevant disjunctions OR SCNF clauses.
@@ -45,8 +45,11 @@ class Psi0():
 
 
 def compute_loss(
-    p: np.ndarray, Theta: CNF, Psi: Psi0, SC: set[State],
-    all_transitions: list[TrimmedTransition]
+    p: np.ndarray,
+    Theta: CNF,
+    Psi: Psi0,
+    SC: Set[State],
+    all_transitions: List[TrimmedTransition],
 ) -> float:
     """Loss function for the optimization problem to solve in order to set the Bernoulli variable parameters\
         in an SCNF clause.
@@ -57,8 +60,8 @@ def compute_loss(
         p (np.ndarray): the current set of probabilities.
         Theta (CNF): the SCNF disjunctions the probabilities of which to compute loss for.
         Psi (Psi0): The Psi0 map which gives the relevant disjunctions for a certain state.
-        SC (set[State]): The set of states that result in the target node's value being either 0 or 1.
-        all_transitions (list[TrimmedTransition]): All of the transitions for node `i`.
+        SC (Set[State]): The set of states that result in the target node's value being either 0 or 1.
+        all_transitions (List[TrimmedTransition]): All of the transitions for node `i`.
 
     Returns:
         float: The loss based on the logarithmic likelihood of the time series of transitions.
@@ -74,7 +77,9 @@ def compute_loss(
     # Equation 31
     for _lambda in SC:
         P0_lambda = compute_P0(_lambda, Psi)
-        log_likelihood_lambda = compute_log_likelihood(_lambda, all_transitions, P0_lambda)
+        log_likelihood_lambda = compute_log_likelihood(
+            _lambda, all_transitions, P0_lambda
+        )
         Sigma += log_likelihood_lambda
 
     return -1 * Sigma
@@ -101,24 +106,29 @@ def compute_P0(_lambda: State, Psi: Psi0) -> float:
         Psi0_lambda_m = list(itertools.combinations(Psi0_lambda, m))
 
         # Sum of the product of probabilities for all disjunction subsets
-        probability_sum = sum([
-            math.prod([p_jm_n for _, p_jm_n in Theta_jm]) for Theta_jm in Psi0_lambda_m
-        ])
+        probability_sum = sum(
+            [
+                math.prod([p_jm_n for _, p_jm_n in Theta_jm])
+                for Theta_jm in Psi0_lambda_m
+            ]
+        )
 
         # Add to final sum
-        Sigma += ((-1)**(m + 1)) * probability_sum
+        Sigma += ((-1) ** (m + 1)) * probability_sum
 
     return Sigma
 
 
-def compute_log_likelihood(_lambda: State, all_transitions: list[TrimmedTransition], P0_lambda: float) -> float:
+def compute_log_likelihood(
+    _lambda: State, all_transitions: List[TrimmedTransition], P0_lambda: float
+) -> float:
     """Compute the logarithmic likelihood of a time series of transitions for a certain state.
 
     Equations 27, 28 and 32 from the paper.
 
     Args:
         _lambda (State): The state in question.
-        all_transitions (list[TrimmedTransition]): The time series of transitions.
+        all_transitions (List[TrimmedTransition]): The time series of transitions.
         P0_lambda (float): The P0 factor for the state.
 
     Returns:
@@ -128,5 +138,7 @@ def compute_log_likelihood(_lambda: State, all_transitions: list[TrimmedTransiti
     N1_lambda = all_transitions.count((_lambda, True))  # Equation 28
 
     # Equation 32
-    log_likelihood_lambda = N0_lambda * math.log(P0_lambda) + N1_lambda * math.log(1 - P0_lambda)
+    log_likelihood_lambda = N0_lambda * math.log(P0_lambda) + N1_lambda * math.log(
+        1 - P0_lambda
+    )
     return log_likelihood_lambda
